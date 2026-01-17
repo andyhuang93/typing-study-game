@@ -4,27 +4,23 @@ import "./App.css";
 const INITIAL_WORDS = [
   { word: "ab", definition: "Ability of different objects to respond to the same method call" },
   { word: "abc", definition: "Bundling data and methods that operate on the data" },
-  { word: "abcd", definition: "Mechanism where a class derives from another class" }
+  { word: "abcd", definition: "Mechanism where a class derives from another class" },
 ];
 
 function App() {
   /* ===== STATE ===== */
   const [words, setWords] = useState(INITIAL_WORDS);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeDefs, setActiveDefs] = useState([]);
   const [score, setScore] = useState(0);
   const [fallSpeed, setFallSpeed] = useState(0.5);
-  const [position, setPosition] = useState(0);
-
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
 
-  // Feedback state
-  const [feedbackText, setFeedbackText] = useState("");
-  const [feedbackClass, setFeedbackClass] = useState(""); // "" | "correct" | "incorrect"
-
   const [inputValue, setInputValue] = useState("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackClass, setFeedbackClass] = useState("");
 
-  const definitionRef = useRef(null);
+  const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
 
   /* ===== STARFIELD ===== */
@@ -39,7 +35,6 @@ function App() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
-
     resize();
     window.addEventListener("resize", resize);
 
@@ -73,41 +68,74 @@ function App() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  /* ===== SPAWN DEFINITIONS FROM TOP RANDOMLY ===== */
+  const spawnDefinition = React.useCallback(() => {
+    if (nextWordIndex.current >= words.length) return;
+
+    const w = words[nextWordIndex.current];
+
+  // Make sure definitions don't go off-screen
+    const boxWidth = Math.min(400, window.innerWidth - 20); // 20px min padding
+    const padding = boxWidth / 2;
+
+    setActiveDefs(defs => [
+      ...defs,
+      {
+        id: Date.now() + Math.random(),
+        word: w.word,
+        definition: w.definition,
+        y: 0,
+        speed: fallSpeed,
+        x: Math.random() * (window.innerWidth - padding * 2) + padding
+      }
+    ]);
+
+    nextWordIndex.current += 1;
+  }, [words, fallSpeed]);
   /* ===== FALLING LOOP ===== */
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
-    clearInterval(intervalRef.current);
-
     intervalRef.current = setInterval(() => {
-      setPosition(prev => {
-        const next = prev + fallSpeed;
+      setActiveDefs(defs =>
+        defs.map(d => ({ ...d, y: d.y + d.speed }))
+      );
 
-        if (definitionRef.current) {
-          const bottom = definitionRef.current.getBoundingClientRect().bottom;
-          if (bottom >= window.innerHeight - 60) {
+      setActiveDefs(defs => {
+        for (let d of defs) {
+          if (d.y > window.innerHeight - 120) {
             endGame();
+            return defs;
           }
         }
-
-        return next;
+        return defs;
       });
     }, 16);
 
     return () => clearInterval(intervalRef.current);
-  }, [fallSpeed, gameStarted, gameOver]);
+  }, [gameStarted, gameOver, fallSpeed]);
+
+  /* ===== SPAWN TIMER (slower) ===== */
+  useEffect(() => {
+    if (!gameStarted || gameOver) return;
+
+    spawnDefinition(); // spawn immediately
+    const spawnTimer = setInterval(spawnDefinition, 3500); // slower spawn (3.5s)
+
+    return () => clearInterval(spawnTimer);
+  }, [gameStarted, gameOver, spawnDefinition]);
 
   /* ===== GAME CONTROL ===== */
   function startGame() {
     setGameStarted(true);
     setGameOver(false);
     setScore(0);
-    setCurrentIndex(0);
     setFallSpeed(0.5);
-    setPosition(0);
+    setActiveDefs([]);
+    nextWordIndex.current = 0;
+    setInputValue("");
     setFeedbackText("");
     setFeedbackClass("");
-    setInputValue("");
   }
 
   function endGame() {
@@ -118,27 +146,33 @@ function App() {
   function handleKeyDown(e) {
     if (e.key !== "Enter") return;
 
-    const correct = words[currentIndex].word.toLowerCase();
+    const typed = inputValue.toLowerCase();
+    const match = activeDefs.find(d => d.word.toLowerCase() === typed);
 
-    if (inputValue.toLowerCase() === correct) {
+    if (match) {
+      setActiveDefs(defs => {
+        const newDefs = defs.filter(d => d.id !== match.id);
+
+        // ✅ Check if all words have been answered
+        if (nextWordIndex.current >= words.length && newDefs.length === 0) {
+          endGame();
+        }
+
+        return newDefs;
+      });
+
       setScore(s => s + 1);
       setFallSpeed(s => Math.min(s + 0.2, 5));
       setFeedbackText("Correct!");
       setFeedbackClass("correct");
     } else {
-      setFeedbackText(`Incorrect! Answer: ${correct}`);
+      setFeedbackText("Incorrect!");
       setFeedbackClass("incorrect");
     }
 
     setInputValue("");
-    setPosition(0);
-
-    if (currentIndex + 1 < words.length) {
-      setCurrentIndex(i => i + 1);
-    } else {
-      endGame();
-    }
   }
+
 
   /* ===== FILE UPLOAD ===== */
   function handleFile(e) {
@@ -179,22 +213,27 @@ function App() {
 
       {gameStarted && !gameOver && (
         <>
-          <div id="game-area">
+          {activeDefs.map(d => (
             <div
-              id="definition"
-              ref={definitionRef}
+              key={d.id}
               className="definition-box"
-              style={{ top: position }}
+              style={{
+                position: "fixed",
+                top: d.y,
+                left: d.x,
+                transform: "translateX(-50%)"
+              }}
             >
-              {words[currentIndex]?.definition}
+              {d.definition}
             </div>
-          </div>
+          ))}
 
           <input
             id="input"
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
+            placeholder="Type the word and press Enter"
             autoFocus
           />
 
@@ -209,7 +248,7 @@ function App() {
             <h2>Game Over</h2>
             <p className="final-score">Final Score: {score}</p>
             <button id="restartBtn" onClick={startGame}>Restart Game</button>
-            <div className="file-section"> 
+            <div className="file-section">
               <p>Want to study a different word list?</p>
               <input type="file" accept=".txt" onChange={handleFile} />
             </div>

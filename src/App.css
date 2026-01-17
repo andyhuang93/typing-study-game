@@ -88,9 +88,9 @@ h1 {
 /* ===== Score ===== */
 #score {
   position: fixed;
-  top: 20px;
+  top: 10px;
   right: 40px;
-  font-size: 2.5em;
+  font-size: 1.5em;
   text-shadow: 1px 1px 3px #000;
   z-index: 10;
   color: red;
@@ -185,10 +185,9 @@ h1 {
 
 /* ===== Definition Box ===== */
 .definition-box {
-  position: absolute;
+  position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;  /* controlled by JS */
   padding: 10px 15px;
   background-color: rgba(0, 0, 0, 0.6);
   border: 2px solid white;
@@ -200,7 +199,10 @@ h1 {
   max-width: 400px;
   word-wrap: break-word;
   z-index: 2;
+  pointer-events: none;
 }
+
+
 
 /* ===== Starfield Background ===== */
 #starfield {
