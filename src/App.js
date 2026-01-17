@@ -10,8 +10,10 @@ const INITIAL_WORDS = [
 function App() {
   /* ===== STATE ===== */
   const [words, setWords] = useState(INITIAL_WORDS);
+  const [shuffledWords, setShuffledWords] = useState([]);
   const [activeDefs, setActiveDefs] = useState([]);
   const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
   const [fallSpeed, setFallSpeed] = useState(0.5);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
@@ -22,6 +24,7 @@ function App() {
 
   const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
+  const alreadyMissedIds = useRef(new Set());
 
   /* ===== STARFIELD ===== */
   const canvasRef = useRef(null);
@@ -70,12 +73,12 @@ function App() {
 
   /* ===== SPAWN DEFINITIONS FROM TOP RANDOMLY ===== */
   const spawnDefinition = React.useCallback(() => {
-    if (nextWordIndex.current >= words.length) return;
+    if (nextWordIndex.current >= shuffledWords.length) return;
 
-    const w = words[nextWordIndex.current];
+    const w = shuffledWords[nextWordIndex.current];
 
-  // Make sure definitions don't go off-screen
-    const boxWidth = Math.min(400, window.innerWidth - 20); // 20px min padding
+    // Make sure definitions don't go off-screen
+    const boxWidth = Math.min(400, window.innerWidth - 20);
     const padding = boxWidth / 2;
 
     setActiveDefs(defs => [
@@ -91,24 +94,35 @@ function App() {
     ]);
 
     nextWordIndex.current += 1;
-  }, [words, fallSpeed]);
+  }, [shuffledWords, fallSpeed]);
+
   /* ===== FALLING LOOP ===== */
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
     intervalRef.current = setInterval(() => {
-      setActiveDefs(defs =>
-        defs.map(d => ({ ...d, y: d.y + d.speed }))
-      );
-
       setActiveDefs(defs => {
-        for (let d of defs) {
-          if (d.y > window.innerHeight - 120) {
-            endGame();
-            return defs;
+        const defsToRemove = [];
+        let updatedDefs = defs.map(d => ({ ...d, y: d.y + d.speed }));
+        
+        for (let d of updatedDefs) {
+          // Check if definition reached bottom AND hasn't been counted yet
+          if (d.y > window.innerHeight - 120 && !alreadyMissedIds.current.has(d.id)) {
+            alreadyMissedIds.current.add(d.id);
+            defsToRemove.push(d.id);
+            
+            setLives(prevLives => {
+              const newLives = prevLives - 1;
+              if (newLives <= 0) {
+                endGame();
+              }
+              return newLives;
+            });
           }
         }
-        return defs;
+
+        // Remove missed definitions immediately
+        return updatedDefs.filter(d => !defsToRemove.includes(d.id));
       });
     }, 16);
 
@@ -119,20 +133,26 @@ function App() {
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
-    spawnDefinition(); // spawn immediately
-    const spawnTimer = setInterval(spawnDefinition, 3500); // slower spawn (3.5s)
+    spawnDefinition();
+    const spawnTimer = setInterval(spawnDefinition, 7500);
 
     return () => clearInterval(spawnTimer);
   }, [gameStarted, gameOver, spawnDefinition]);
 
   /* ===== GAME CONTROL ===== */
   function startGame() {
+    // Shuffle the words array
+    const shuffled = [...words].sort(() => Math.random() - 0.5);
+    setShuffledWords(shuffled);
+    
     setGameStarted(true);
     setGameOver(false);
     setScore(0);
+    setLives(3);
     setFallSpeed(0.5);
     setActiveDefs([]);
     nextWordIndex.current = 0;
+    alreadyMissedIds.current = new Set();
     setInputValue("");
     setFeedbackText("");
     setFeedbackClass("");
@@ -153,8 +173,8 @@ function App() {
       setActiveDefs(defs => {
         const newDefs = defs.filter(d => d.id !== match.id);
 
-        // ✅ Check if all words have been answered
-        if (nextWordIndex.current >= words.length && newDefs.length === 0) {
+        // Check if all words have been answered
+        if (nextWordIndex.current >= shuffledWords.length && newDefs.length === 0) {
           endGame();
         }
 
@@ -172,7 +192,6 @@ function App() {
 
     setInputValue("");
   }
-
 
   /* ===== FILE UPLOAD ===== */
   function handleFile(e) {
@@ -192,7 +211,6 @@ function App() {
 
       if (newWords.length) {
         setWords(newWords);
-        startGame();
       }
     };
     reader.readAsText(file);
@@ -213,20 +231,22 @@ function App() {
 
       {gameStarted && !gameOver && (
         <>
-          {activeDefs.map(d => (
-            <div
-              key={d.id}
-              className="definition-box"
-              style={{
-                position: "fixed",
-                top: d.y,
-                left: d.x,
-                transform: "translateX(-50%)"
-              }}
-            >
-              {d.definition}
-            </div>
-          ))}
+          {activeDefs
+            .filter(d => d.y <= window.innerHeight - 120)
+            .map(d => (
+              <div
+                key={d.id}
+                className="definition-box"
+                style={{
+                  position: "fixed",
+                  top: d.y,
+                  left: d.x,
+                  transform: "translateX(-50%)"
+                }}
+              >
+                {d.definition}
+              </div>
+            ))}
 
           <input
             id="input"
@@ -238,7 +258,20 @@ function App() {
           />
 
           <div id="feedback" className={feedbackClass}>{feedbackText}</div>
+          
           <div id="score">Score: {score}</div>
+          
+          <div style={{
+            position: "absolute",
+            bottom: "20px",
+            left: "50%",
+            transform: "translateX(220px)",
+            fontSize: "1.5em",
+            textShadow: "1px 1px 3px #000",
+            color: "red"
+          }}>
+            Lives: {"❤️".repeat(lives)}
+          </div>
         </>
       )}
 
@@ -246,7 +279,7 @@ function App() {
         <div className="end-screen-overlay">
           <div className="end-screen">
             <h2>Game Over</h2>
-            <p className="final-score">Final Score: {score}</p>
+            <p className="final-score">Final Score: {score}/{words.length}</p>
             <button id="restartBtn" onClick={startGame}>Restart Game</button>
             <div className="file-section">
               <p>Want to study a different word list?</p>
