@@ -7,16 +7,23 @@ const INITIAL_WORDS = [
   { word: "abcd", definition: "Mechanism where a class derives from another class" },
 ];
 
+const GAME_MODES = {
+  CLASSIC: "classic",
+  TIMED: "timed",
+};
+
 function App() {
-  /* ===== STATE ===== */
   const [words, setWords] = useState(INITIAL_WORDS);
   const [shuffledWords, setShuffledWords] = useState([]);
   const [activeDefs, setActiveDefs] = useState([]);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [fallSpeed, setFallSpeed] = useState(0.5);
+  const [fallSpeed] = useState(0.5);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+
+  const [gameMode, setGameMode] = useState(GAME_MODES.CLASSIC);
+  const [timeLeft, setTimeLeft] = useState(180);
 
   const [inputValue, setInputValue] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
@@ -25,8 +32,11 @@ function App() {
   const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
   const alreadyMissedIds = useRef(new Set());
+  const lastAnswerTime = useRef(0);
+  const timerRef = useRef(null);
 
-  /* ===== STARFIELD ===== */
+  const SPAWN_COOLDOWN_MS = 500;
+
   const canvasRef = useRef(null);
   const starsRef = useRef([]);
 
@@ -71,13 +81,15 @@ function App() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  /* ===== SPAWN DEFINITIONS FROM TOP RANDOMLY ===== */
   const spawnDefinition = React.useCallback(() => {
-    if (nextWordIndex.current >= shuffledWords.length) return;
+    const now = Date.now();
+    if (now - lastAnswerTime.current < SPAWN_COOLDOWN_MS) return;
 
-    const w = shuffledWords[nextWordIndex.current];
+    if (gameMode === GAME_MODES.CLASSIC && nextWordIndex.current >= shuffledWords.length) return;
 
-    // Make sure definitions don't go off-screen
+    const w = shuffledWords[nextWordIndex.current % shuffledWords.length];
+    if (!w) return;
+
     const boxWidth = Math.min(400, window.innerWidth - 20);
     const padding = boxWidth / 2;
 
@@ -94,63 +106,72 @@ function App() {
     ]);
 
     nextWordIndex.current += 1;
-  }, [shuffledWords, fallSpeed]);
+  }, [shuffledWords, fallSpeed, gameMode]);
 
-  /* ===== FALLING LOOP ===== */
   useEffect(() => {
     if (!gameStarted || gameOver) return;
 
     intervalRef.current = setInterval(() => {
       setActiveDefs(defs => {
-        const defsToRemove = [];
-        let updatedDefs = defs.map(d => ({ ...d, y: d.y + d.speed }));
-        
-        for (let d of updatedDefs) {
-          // Check if definition reached bottom AND hasn't been counted yet
+        const removeIds = [];
+        const updated = defs.map(d => ({ ...d, y: d.y + d.speed }));
+
+        for (let d of updated) {
           if (d.y > window.innerHeight - 120 && !alreadyMissedIds.current.has(d.id)) {
             alreadyMissedIds.current.add(d.id);
-            defsToRemove.push(d.id);
-            
-            setLives(prevLives => {
-              const newLives = prevLives - 1;
-              if (newLives <= 0) {
-                endGame();
-              }
-              return newLives;
-            });
+            removeIds.push(d.id);
+
+            if (gameMode === GAME_MODES.CLASSIC) {
+              setLives(prev => {
+                const next = prev - 1;
+                if (next <= 0) endGame();
+                return next;
+              });
+            }
           }
         }
 
-        // Remove missed definitions immediately
-        return updatedDefs.filter(d => !defsToRemove.includes(d.id));
+        return updated.filter(d => !removeIds.includes(d.id));
       });
     }, 16);
 
     return () => clearInterval(intervalRef.current);
-  }, [gameStarted, gameOver, fallSpeed]);
+  }, [gameStarted, gameOver, gameMode]);
 
-  /* ===== SPAWN TIMER (slower) ===== */
   useEffect(() => {
     if (!gameStarted || gameOver) return;
-
     spawnDefinition();
-    const spawnTimer = setInterval(spawnDefinition, 7500);
-
+    const spawnTimer = setInterval(spawnDefinition, 5000);
     return () => clearInterval(spawnTimer);
   }, [gameStarted, gameOver, spawnDefinition]);
 
-  /* ===== GAME CONTROL ===== */
+  useEffect(() => {
+    if (!gameStarted || gameOver || gameMode !== GAME_MODES.TIMED) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          endGame();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timerRef.current);
+  }, [gameStarted, gameOver, gameMode]);
+
   function startGame() {
-    // Shuffle the words array
     const shuffled = [...words].sort(() => Math.random() - 0.5);
     setShuffledWords(shuffled);
-    
+
     setGameStarted(true);
     setGameOver(false);
     setScore(0);
     setLives(3);
-    setFallSpeed(0.5);
     setActiveDefs([]);
+    setTimeLeft(180);
+
     nextWordIndex.current = 0;
     alreadyMissedIds.current = new Set();
     setInputValue("");
@@ -160,6 +181,7 @@ function App() {
 
   function endGame() {
     clearInterval(intervalRef.current);
+    clearInterval(timerRef.current);
     setGameOver(true);
   }
 
@@ -170,11 +192,16 @@ function App() {
     const match = activeDefs.find(d => d.word.toLowerCase() === typed);
 
     if (match) {
+      lastAnswerTime.current = Date.now();
+
       setActiveDefs(defs => {
         const newDefs = defs.filter(d => d.id !== match.id);
 
-        // Check if all words have been answered
-        if (nextWordIndex.current >= shuffledWords.length && newDefs.length === 0) {
+        if (
+          gameMode === GAME_MODES.CLASSIC &&
+          nextWordIndex.current >= shuffledWords.length &&
+          newDefs.length === 0
+        ) {
           endGame();
         }
 
@@ -182,7 +209,6 @@ function App() {
       });
 
       setScore(s => s + 1);
-      setFallSpeed(s => Math.min(s + 0.2, 5));
       setFeedbackText("Correct!");
       setFeedbackClass("correct");
     } else {
@@ -193,7 +219,6 @@ function App() {
     setInputValue("");
   }
 
-  /* ===== FILE UPLOAD ===== */
   function handleFile(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -209,14 +234,11 @@ function App() {
           return { word: word.trim(), definition: def.join(":").trim() };
         });
 
-      if (newWords.length) {
-        setWords(newWords);
-      }
+      if (newWords.length) setWords(newWords);
     };
     reader.readAsText(file);
   }
 
-  /* ===== RENDER ===== */
   return (
     <>
       <canvas id="starfield" ref={canvasRef} />
@@ -224,6 +246,16 @@ function App() {
       {!gameStarted && (
         <>
           <h1>Typing Study Game</h1>
+
+          <select
+            id="modeSelect"
+            value={gameMode}
+            onChange={e => setGameMode(e.target.value)}
+          >
+            <option value={GAME_MODES.CLASSIC}>Classic</option>
+            <option value={GAME_MODES.TIMED}>Timed (3 minutes)</option>
+          </select>
+
           <button id="startBtn" onClick={startGame}>Start Game</button>
           <input type="file" id="fileInput" accept=".txt" onChange={handleFile} />
         </>
@@ -258,20 +290,35 @@ function App() {
           />
 
           <div id="feedback" className={feedbackClass}>{feedbackText}</div>
-          
           <div id="score">Score: {score}</div>
-          
-          <div style={{
-            position: "absolute",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(220px)",
-            fontSize: "1.5em",
-            textShadow: "1px 1px 3px #000",
-            color: "red"
-          }}>
-            Lives: {"❤️".repeat(lives)}
-          </div>
+
+          {gameMode === GAME_MODES.TIMED && (
+            <div style={{
+              position: "absolute",
+              bottom: "25px",
+              left: "50%",
+              transform: "translateX(220px)",
+              fontSize: "1.75em",
+              textShadow: "1px 1px 3px #000",
+              color: "red"
+            }}>
+              Time: {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, "0")}
+            </div>
+          )}
+
+          {gameMode === GAME_MODES.CLASSIC && (
+            <div style={{
+              position: "absolute",
+              bottom: "25px",
+              left: "50%",
+              transform: "translateX(220px)",
+              fontSize: "1.75em",
+              textShadow: "1px 1px 3px #000",
+              color: "red"
+            }}>
+              Lives: {"❤️".repeat(lives)}
+            </div>
+          )}
         </>
       )}
 
@@ -279,7 +326,9 @@ function App() {
         <div className="end-screen-overlay">
           <div className="end-screen">
             <h2>Game Over</h2>
-            <p className="final-score">Final Score: {score}/{words.length}</p>
+            <p className="final-score">
+              Final Score: {score}{gameMode === GAME_MODES.CLASSIC && ` / ${words.length}`}
+            </p>
             <button id="restartBtn" onClick={startGame}>Restart Game</button>
             <div className="file-section">
               <p>Want to study a different word list?</p>
