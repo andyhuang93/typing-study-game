@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const INITIAL_WORDS = [
-  { word: "ab", definition: "Ability of different objects to respond to the same method call" },
-  { word: "abc", definition: "Bundling data and methods that operate on the data" },
-  { word: "abcd", definition: "Mechanism where a class derives from another class" },
+  { word: "cat", definition: "meow" },
+  { word: "dog", definition: "woof" },
+  { word: "sheep", definition: "mAA" },
 ];
 
 const GAME_MODES = {
@@ -21,25 +21,30 @@ function App() {
   const [fallSpeed] = useState(0.5);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameOver, setGameOver] = useState(false);
-
   const [gameMode, setGameMode] = useState(GAME_MODES.CLASSIC);
   const [timeLeft, setTimeLeft] = useState(180);
-
   const [inputValue, setInputValue] = useState("");
   const [feedbackText, setFeedbackText] = useState("");
   const [feedbackClass, setFeedbackClass] = useState("");
+  const [isPaused, setIsPaused] = useState(false);
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false);
 
   const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
   const alreadyMissedIds = useRef(new Set());
   const lastAnswerTime = useRef(0);
   const timerRef = useRef(null);
-
-  const SPAWN_COOLDOWN_MS = 500;
-
   const canvasRef = useRef(null);
   const starsRef = useRef([]);
 
+  const SPAWN_COOLDOWN_MS = 500;
+  const MIN_SPAWN_MS = 2000;
+  const MAX_SPAWN_MS = 5000;
+
+  const isPausedRef = useRef(false);
+  const spawnLoopRef = useRef(null);
+
+  /* -------------------- STARFIELD -------------------- */
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -81,6 +86,31 @@ function App() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
+  /* -------------------- PAUSE ON TAB CHANGE -------------------- */
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.hidden) {
+        setIsPaused(true);
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
+  /* -------------------- PAUSE/RESUME WITH ESC -------------------- */
+  useEffect(() => {
+    function handleKey(e) {
+      if (isPaused && e.key === "Escape") {
+        setIsPaused(false);
+        lastAnswerTime.current = Date.now();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [isPaused]);
+
+  /* -------------------- SPAWN DEFINITION -------------------- */
   const spawnDefinition = React.useCallback(() => {
     const now = Date.now();
     if (now - lastAnswerTime.current < SPAWN_COOLDOWN_MS) return;
@@ -108,8 +138,9 @@ function App() {
     nextWordIndex.current += 1;
   }, [shuffledWords, fallSpeed, gameMode]);
 
+  /* -------------------- FALLING LOOP -------------------- */
   useEffect(() => {
-    if (!gameStarted || gameOver) return;
+    if (!gameStarted || gameOver || isPaused) return;
 
     intervalRef.current = setInterval(() => {
       setActiveDefs(defs => {
@@ -136,17 +167,39 @@ function App() {
     }, 16);
 
     return () => clearInterval(intervalRef.current);
-  }, [gameStarted, gameOver, gameMode]);
+  }, [gameStarted, gameOver, gameMode, isPaused]);
 
+  /* -------------------- SPAWN LOOP (RANDOM INTERVAL) -------------------- */
   useEffect(() => {
-    if (!gameStarted || gameOver) return;
-    spawnDefinition();
-    const spawnTimer = setInterval(spawnDefinition, 5000);
-    return () => clearInterval(spawnTimer);
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  const startSpawnLoop = React.useCallback(() => {
+    const loop = () => {
+      if (!gameStarted || gameOver) return;
+
+      if (!isPausedRef.current) {
+        spawnDefinition();
+      }
+
+      const nextTime = Math.random() * (MAX_SPAWN_MS - MIN_SPAWN_MS) + MIN_SPAWN_MS;
+      spawnLoopRef.current = setTimeout(loop, nextTime);
+    };
+
+    loop();
   }, [gameStarted, gameOver, spawnDefinition]);
 
   useEffect(() => {
-    if (!gameStarted || gameOver || gameMode !== GAME_MODES.TIMED) return;
+    if (!gameStarted || gameOver) return;
+
+    startSpawnLoop();
+
+    return () => clearTimeout(spawnLoopRef.current);
+  }, [gameStarted, gameOver, startSpawnLoop]);
+
+  /* -------------------- TIMED MODE CLOCK -------------------- */
+  useEffect(() => {
+    if (!gameStarted || gameOver || isPaused || gameMode !== GAME_MODES.TIMED) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft(t => {
@@ -159,8 +212,9 @@ function App() {
     }, 1000);
 
     return () => clearInterval(timerRef.current);
-  }, [gameStarted, gameOver, gameMode]);
+  }, [gameStarted, gameOver, gameMode, isPaused]);
 
+  /* -------------------- GAME CONTROL -------------------- */
   function startGame() {
     const shuffled = [...words].sort(() => Math.random() - 0.5);
     setShuffledWords(shuffled);
@@ -171,6 +225,8 @@ function App() {
     setLives(3);
     setActiveDefs([]);
     setTimeLeft(180);
+    setIsPaused(false);
+    setShowQuitConfirm(false);
 
     nextWordIndex.current = 0;
     alreadyMissedIds.current = new Set();
@@ -182,11 +238,24 @@ function App() {
   function endGame() {
     clearInterval(intervalRef.current);
     clearInterval(timerRef.current);
+    clearTimeout(spawnLoopRef.current);
     setGameOver(true);
   }
 
+  function goToMainMenu() {
+    setGameStarted(false);
+    setGameOver(false);
+    setActiveDefs([]);
+    setInputValue("");
+    setFeedbackText("");
+    setFeedbackClass("");
+    setIsPaused(false);
+    setShowQuitConfirm(false);
+    clearTimeout(spawnLoopRef.current);
+  }
+
   function handleKeyDown(e) {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || isPaused) return;
 
     const typed = inputValue.toLowerCase();
     const match = activeDefs.find(d => d.word.toLowerCase() === typed);
@@ -239,6 +308,7 @@ function App() {
     reader.readAsText(file);
   }
 
+  /* -------------------- RENDER -------------------- */
   return (
     <>
       <canvas id="starfield" ref={canvasRef} />
@@ -263,6 +333,16 @@ function App() {
 
       {gameStarted && !gameOver && (
         <>
+          <button
+            className="quit-btn"
+            onClick={() => {
+              setIsPaused(true);
+              setShowQuitConfirm(true);
+            }}
+          >
+            ❌
+          </button>
+
           {activeDefs
             .filter(d => d.y <= window.innerHeight - 120)
             .map(d => (
@@ -322,6 +402,58 @@ function App() {
         </>
       )}
 
+      {isPaused && gameStarted && !gameOver && !showQuitConfirm && (
+        <div className="pause-overlay" onClick={() => {
+          setIsPaused(false);
+          lastAnswerTime.current = Date.now();
+        }}>
+          <div className="pause-box">
+            <h2>PAUSED</h2>
+            <p>Click anywhere or press Escape to resume</p>
+          </div>
+        </div>
+      )}
+
+      {showQuitConfirm && gameStarted && !gameOver && (
+        <div 
+          className="quit-confirm-overlay"
+          onClick={() => {
+            setShowQuitConfirm(false);
+            setIsPaused(false);
+          }}
+        >
+          <div 
+            className="quit-confirm-box"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3>Are you sure?</h3>
+            <p>Quitting will return to main menu.</p>
+            
+            <div className="confirm-buttons">
+              <button 
+                className="confirm-yes"
+                onClick={() => {
+                  setShowQuitConfirm(false);
+                  goToMainMenu();
+                }}
+              >
+                Yes
+              </button>
+              
+              <button 
+                className="confirm-no"
+                onClick={() => {
+                  setShowQuitConfirm(false);
+                  setIsPaused(false);
+                }}
+              >
+                No
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {gameOver && (
         <div className="end-screen-overlay">
           <div className="end-screen">
@@ -330,6 +462,11 @@ function App() {
               Final Score: {score}{gameMode === GAME_MODES.CLASSIC && ` / ${words.length}`}
             </p>
             <button id="restartBtn" onClick={startGame}>Restart Game</button>
+
+            <button id="mainMenuBtn" onClick={goToMainMenu}>
+              Back to Main Menu
+            </button>
+
             <div className="file-section">
               <p>Want to study a different word list?</p>
               <input type="file" accept=".txt" onChange={handleFile} />
