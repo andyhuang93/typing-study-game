@@ -108,6 +108,12 @@ h1 {
   color: #ff5555;
   text-shadow: 1px 1px 3px #000;
   z-index: 2;
+  opacity: 1;
+  transition: opacity 0.6s ease
+}
+
+#feedback.fade-out {
+  opacity: 0;
 }
 
 #feedback.correct {
