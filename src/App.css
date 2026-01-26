@@ -383,3 +383,151 @@ h1 {
   background: #c0392b;
   transform: translateY(-1px);
 }
+
+#formatHelpBtn {
+  margin-top: 15px;
+  padding: 12px 30px;
+  font-size: 1.1em;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+#formatHelpBtn:hover {
+  background-color: #2980b9;
+  transform: translateY(-2px);
+}
+
+.format-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+
+.format-help-box {
+  background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+  border: 3px solid #555;
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 600px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  color: white;
+}
+
+.format-help-box h2 {
+  margin: 0 0 1.5rem;
+  color: #fff;
+  font-size: 2rem;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+.format-content {
+  text-align: left;
+}
+
+.format-intro {
+  font-size: 1.1em;
+  margin-bottom: 1.5rem;
+  line-height: 1.5;
+  color: #e0e0e0;
+}
+
+.format-example {
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 4px solid #666;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  border-radius: 5px;
+}
+
+.format-example h3 {
+  margin: 0 0 0.8rem;
+  color: #aaa;
+  font-size: 1.2em;
+}
+
+.format-example pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 1rem;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95em;
+  line-height: 1.6;
+  color: #a8dadc;
+  margin: 0;
+}
+
+.format-rules {
+  margin-top: 1.5rem;
+}
+
+.format-rules h3 {
+  margin: 0 0 0.8rem;
+  color: #aaa;
+  font-size: 1.2em;
+}
+
+.format-rules ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.format-rules li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.5;
+  color: #e0e0e0;
+}
+
+.format-rules li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.format-rules strong {
+  color: #bbb;
+  font-weight: bold;
+}
+
+.format-close-btn {
+  margin-top: 2rem;
+  padding: 12px 40px;
+  font-size: 1.2em;
+  background-color: #2ecc71;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.format-close-btn:hover {
+  background-color: #27ae60;
+  transform: translateY(-2px);
+}

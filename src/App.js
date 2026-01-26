@@ -2,9 +2,16 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 const INITIAL_WORDS = [
-  { word: "cat", definition: "meow" },
-  { word: "dog", definition: "woof" },
-  { word: "sheep", definition: "mAA" },
+  { word: "function", definition: "A block of code that performs a specific task" },
+  { word: "variable", definition: "A named value that can change in a program" },
+  { word: "compiler", definition: "A program that converts code into another form" },
+  { word: "inheritance", definition: "When a class takes properties from another class" },
+  { word: "recursion", definition: "A function that calls itself to solve a problem" },
+  { word: "internet", definition: "A global network that connects computers" },
+  { word: "array", definition: "A list that stores multiple values in order" },
+  { word: "clock", definition: "A device that shows the time" },
+  { word: "biology", definition: "The study of living organisms and life" },
+  { word: "algorithm", definition: "A step-by-step set of instructions to solve problems" }
 ];
 
 const GAME_MODES = {
@@ -30,6 +37,8 @@ function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [isFading, setIsFading] = useState(false);
+  const [showFormatHelp, setShowFormatHelp] = useState(false);
+
   const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
   const alreadyMissedIds = useRef(new Set());
@@ -43,12 +52,11 @@ function App() {
   const isPausedRef = useRef(false);
 
   const SPAWN_COOLDOWN_MS = 500;
-  const MIN_SPAWN_MS = 5000;
+  const MIN_SPAWN_MS = 5500;
   const MAX_SPAWN_MS = 8000;
   const MIN_SPAWN_MS_HARD = 2500;
   const MAX_SPAWN_MS_HARD = 4500;
 
-  // Hard mode speed settings
   const INITIAL_SPEED = 0.45;
   const SPEED_INCREASE_AMOUNT = 0.15;
   const SPEED_INCREASE_INTERVAL = 5000;
@@ -101,8 +109,7 @@ function App() {
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
 
   /* -------------------- PAUSE / QUIT CONFIRM WITH ESC -------------------- */
@@ -130,8 +137,7 @@ function App() {
 
   /* -------------------- HARD MODE SPEED INCREASE -------------------- */
   useEffect(() => {
-    if (!gameStarted || gameOver || isPaused || gameMode !== GAME_MODES.CLASSIC_HARD)
-      return;
+    if (!gameStarted || gameOver || isPaused || gameMode !== GAME_MODES.CLASSIC_HARD) return;
 
     speedIncreaseIntervalRef.current = setInterval(() => {
       setFallSpeed((prev) => Math.min(prev + SPEED_INCREASE_AMOUNT, MAX_SPEED));
@@ -151,8 +157,7 @@ function App() {
     const now = Date.now();
     if (now - lastAnswerTime.current < SPAWN_COOLDOWN_MS) return;
 
-    const minSpawn =
-      gameMode === GAME_MODES.CLASSIC_HARD ? MIN_SPAWN_MS_HARD : MIN_SPAWN_MS;
+    const minSpawn = gameMode === GAME_MODES.CLASSIC_HARD ? MIN_SPAWN_MS_HARD : MIN_SPAWN_MS;
     if (now - lastSpawnTime.current < minSpawn) return;
 
     if (
@@ -196,7 +201,6 @@ function App() {
           if (d.y > window.innerHeight - 120) {
             if (!alreadyMissedIds.current.has(d.id)) {
               alreadyMissedIds.current.add(d.id);
-
               if (
                 gameMode === GAME_MODES.CLASSIC ||
                 gameMode === GAME_MODES.CLASSIC_HARD
@@ -214,9 +218,9 @@ function App() {
 
         const newDefs = updated.filter((d) => !removeIds.includes(d.id));
 
-        // Only end game if lives run out
         if (
-          (gameMode === GAME_MODES.CLASSIC || gameMode === GAME_MODES.CLASSIC_HARD) &&
+          (gameMode === GAME_MODES.CLASSIC ||
+            gameMode === GAME_MODES.CLASSIC_HARD) &&
           lives <= 0
         ) {
           endGame();
@@ -232,7 +236,7 @@ function App() {
   /* -------------------- CHECK GAME COMPLETION -------------------- */
   useEffect(() => {
     if (!gameStarted || gameOver || gameMode === GAME_MODES.TIMED) return;
-    
+
     if (nextWordIndex.current >= shuffledWords.length && activeDefs.length === 0) {
       endGame();
     }
@@ -253,6 +257,7 @@ function App() {
       const maxSpawn =
         gameMode === GAME_MODES.CLASSIC_HARD ? MAX_SPAWN_MS_HARD : MAX_SPAWN_MS;
       const nextTime = Math.random() * (maxSpawn - minSpawn) + minSpawn;
+
       spawnLoopRef.current = setTimeout(loop, nextTime);
     };
     loop();
@@ -284,12 +289,11 @@ function App() {
   /* -------------------- AUTO CLEAR FEEDBACK -------------------- */
   useEffect(() => {
     if (!feedbackText) return;
-
     setIsFading(false);
 
     const fadeTimer = setTimeout(() => {
       setIsFading(true);
-    }, 4500); // start fade slightly before removal
+    }, 4500);
 
     const clearTimer = setTimeout(() => {
       setFeedbackText("");
@@ -302,7 +306,6 @@ function App() {
       clearTimeout(clearTimer);
     };
   }, [feedbackText]);
-
 
   /* -------------------- GAME CONTROL -------------------- */
   function startGame() {
@@ -354,12 +357,10 @@ function App() {
 
     if (match) {
       lastAnswerTime.current = Date.now();
-
       setActiveDefs((defs) => {
         const newDefs = defs.filter((d) => d.id !== match.id);
         return newDefs;
       });
-
       setScore((s) => s + 1);
       setFeedbackText("Correct!");
       setFeedbackClass("correct");
@@ -411,7 +412,18 @@ function App() {
           <button id="startBtn" onClick={startGame}>
             Start Game
           </button>
-          <input type="file" id="fileInput" accept=".txt" onChange={handleFile} />
+          <input
+            type="file"
+            id="fileInput"
+            accept=".txt"
+            onChange={handleFile}
+          />
+          <button 
+            id="formatHelpBtn" 
+            onClick={() => setShowFormatHelp(true)}
+          >
+            📖 File Format Guide
+          </button>
         </>
       )}
 
@@ -453,12 +465,13 @@ function App() {
             autoFocus
           />
 
-          <div 
-          id="feedback" 
-          className={`${feedbackClass} ${isFading ? "fade-out" : ""}`}
+          <div
+            id="feedback"
+            className={`${feedbackClass} ${isFading ? "fade-out" : ""}`}
           >
             {feedbackText}
           </div>
+
           <div id="score">Score: {score}</div>
 
           {gameMode === GAME_MODES.TIMED && (
@@ -520,7 +533,10 @@ function App() {
             setIsPaused(false);
           }}
         >
-          <div className="quit-confirm-box" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="quit-confirm-box"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3>Are you sure?</h3>
             <p>Quitting will return to main menu.</p>
             <div className="confirm-buttons">
@@ -543,6 +559,54 @@ function App() {
                 No
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showFormatHelp && (
+        <div
+          className="format-help-overlay"
+          onClick={() => setShowFormatHelp(false)}
+        >
+          <div
+            className="format-help-box"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2>📖 File Format Guide</h2>
+            <div className="format-content">
+              <p className="format-intro">
+                Your text file should contain one word-definition pair per line, 
+                separated by a colon (:)
+              </p>
+              
+              <div className="format-example">
+                <h3>Example Format:</h3>
+                <pre>
+{`function: A block of code that performs a task
+variable: A named value that can change
+array: A list that stores multiple values
+recursion: A function that calls itself`}
+                </pre>
+              </div>
+
+              <div className="format-rules">
+                <h3>Rules:</h3>
+                <ul>
+                  <li>Each line must have: <strong>word: definition</strong></li>
+                  <li>Use a colon (:) to separate word and definition</li>
+                  <li>One word-definition pair per line</li>
+                  <li>Empty lines will be ignored</li>
+                  <li>Definitions can contain colons - only the first one separates the word</li>
+                </ul>
+              </div>
+            </div>
+
+            <button
+              className="format-close-btn"
+              onClick={() => setShowFormatHelp(false)}
+            >
+              Got it!
+            </button>
           </div>
         </div>
       )}
