@@ -35,12 +35,6 @@ array: A list that stores multiple values
 Music Credits:
 All music provided by NoCopyrightSounds (NCS)
 
-Menu Music:
-- Song: Elektronomia - Sky High [NCS Release]
-    Music provided by NoCopyrightSounds
-    Free Download/Stream: http://ncs.io/skyhigh
-    Watch: http://youtu.be/TW9d8vYrVFQ
-
 Game Music:
 - Song: Warriyo - Mortals (feat. Laura Brehm) [NCS Release]
     Music provided by NoCopyrightSounds
