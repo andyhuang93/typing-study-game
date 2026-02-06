@@ -1,6 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
+import gameMusic1 from "./sounds/game-music-1.mp3";
+import gameMusic2 from "./sounds/game-music-2.mp3";
+import gameMusic3 from "./sounds/game-music-3.mp3";
+
+import correctSound from "./sounds/correct.wav";
+import gameOverSound from "./sounds/gameover.wav";
+import loseLifeSound from "./sounds/lose-life.ogg";
+
 const INITIAL_WORDS = [
   { word: "function", definition: "A block of code that performs a specific task" },
   { word: "variable", definition: "A named value that can change in a program" },
@@ -20,6 +28,9 @@ const GAME_MODES = {
   TIMED: "timed",
 };
 
+
+const GAME_MUSIC_PLAYLIST = [gameMusic1, gameMusic2, gameMusic3];
+
 function App() {
   const [words, setWords] = useState(INITIAL_WORDS);
   const [shuffledWords, setShuffledWords] = useState([]);
@@ -38,6 +49,7 @@ function App() {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [isFading, setIsFading] = useState(false);
   const [showFormatHelp, setShowFormatHelp] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
   const nextWordIndex = useRef(0);
   const intervalRef = useRef(null);
@@ -51,9 +63,16 @@ function App() {
   const spawnLoopRef = useRef(null);
   const isPausedRef = useRef(false);
 
+
+  const gameMusicRef = useRef(null);
+  const correctSoundRef = useRef(null);
+  const gameOverSoundRef = useRef(null);
+  const loseLifeSoundRef = useRef(null);
+
+
   const SPAWN_COOLDOWN_MS = 500;
   const MIN_SPAWN_MS = 5500;
-  const MAX_SPAWN_MS = 8000;
+  const MAX_SPAWN_MS = 9500;
   const MIN_SPAWN_MS_HARD = 2500;
   const MAX_SPAWN_MS_HARD = 4500;
 
@@ -61,6 +80,70 @@ function App() {
   const SPEED_INCREASE_AMOUNT = 0.15;
   const SPEED_INCREASE_INTERVAL = 5000;
   const MAX_SPEED = 2.3;
+
+  /* -------------------- RANDOM MUSIC SELECTOR -------------------- */
+  const getRandomTrack = (playlist) => {
+    const randomIndex = Math.floor(Math.random() * playlist.length);
+    return playlist[randomIndex];
+  };
+
+  /* -------------------- AUDIO SETUP -------------------- */
+  useEffect(() => {
+    correctSoundRef.current = new Audio(correctSound);
+    gameOverSoundRef.current = new Audio(gameOverSound);
+    loseLifeSoundRef.current = new Audio(loseLifeSound);
+
+    correctSoundRef.current.volume = 0.7;
+    gameOverSoundRef.current.volume = 0.7;
+    loseLifeSoundRef.current.volume = 0.7;
+
+    return () => {
+      gameMusicRef.current?.pause();
+      loseLifeSoundRef.current?.pause();
+    };
+  }, []);
+
+  /* -------------------- MUTE CONTROL -------------------- */
+  useEffect(() => {
+    if (gameMusicRef.current) gameMusicRef.current.muted = isMuted;
+  }, [isMuted]);
+
+
+  /* -------------------- GAME MUSIC CONTROL -------------------- */
+  useEffect(() => {
+    if (gameStarted && !gameOver) {
+      gameMusicRef.current?.pause();
+      
+      const randomGameTrack = getRandomTrack(GAME_MUSIC_PLAYLIST);
+      gameMusicRef.current = new Audio(randomGameTrack);
+      gameMusicRef.current.loop = true;
+      gameMusicRef.current.volume = 0.25;
+      gameMusicRef.current.muted = isMuted;
+      
+      gameMusicRef.current.play();
+    } else {
+      
+      gameMusicRef.current?.pause();
+      if (gameMusicRef.current) gameMusicRef.current.currentTime = 0;
+    }
+    
+    return () => {
+      if (gameStarted && !gameOver) {
+        gameMusicRef.current?.pause();
+      }
+    };
+  }, [gameStarted, gameOver]);
+
+  /* -------------------- PAUSE/RESUME MUSIC -------------------- */
+  useEffect(() => {
+    if (gameStarted && !gameOver) {
+      if (isPaused) {
+        gameMusicRef.current?.pause();
+      } else {
+        gameMusicRef.current?.play();
+      }
+    }
+  }, [isPaused, gameStarted, gameOver]);
 
   /* -------------------- STARFIELD -------------------- */
   useEffect(() => {
@@ -101,7 +184,7 @@ function App() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  /* -------------------- PAUSE ON TAB CHANGE -------------------- */
+  /* -------------------- PAUSE ON TAB -------------------- */
   useEffect(() => {
     function handleVisibilityChange() {
       if (document.hidden) {
@@ -207,6 +290,9 @@ function App() {
               ) {
                 setLives((prev) => {
                   const next = prev - 1;
+
+                  loseLifeSoundRef.current.currentTime = 0;
+                  loseLifeSoundRef.current.play()
                   if (next <= 0) endGame();
                   return next;
                 });
@@ -334,6 +420,8 @@ function App() {
     clearTimeout(spawnLoopRef.current);
     clearInterval(speedIncreaseIntervalRef.current);
     setGameOver(true);
+    
+    gameOverSoundRef.current?.play();
   }
 
   function goToMainMenu() {
@@ -364,6 +452,9 @@ function App() {
       setScore((s) => s + 1);
       setFeedbackText("Correct!");
       setFeedbackClass("correct");
+      
+      correctSoundRef.current.currentTime = 0;
+      correctSoundRef.current?.play();
     } else {
       setFeedbackText("Incorrect!");
       setFeedbackClass("incorrect");
@@ -412,17 +503,34 @@ function App() {
           <button id="startBtn" onClick={startGame}>
             Start Game
           </button>
-          <input
-            type="file"
-            id="fileInput"
-            accept=".txt"
-            onChange={handleFile}
-          />
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+            <label htmlFor="fileInput" style={{
+              padding: '12px 30px',
+              fontSize: '1.1em',
+              backgroundColor: '#555',
+              color: 'white',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              border: 'none',
+              transition: 'background-color 0.2s'
+            }}>
+              📁 Choose File
+            </label>
+            <input
+              type="file"
+              id="fileInput"
+              accept=".txt"
+              onChange={handleFile}
+              style={{ display: 'none' }}
+            />
+          </div>
+
           <button 
             id="formatHelpBtn" 
             onClick={() => setShowFormatHelp(true)}
           >
-            📖 File Format Guide
+            📚 File Format Guide
           </button>
         </>
       )}
@@ -437,6 +545,13 @@ function App() {
             }}
           >
             ❌
+          </button>
+
+          <button
+            className="mute-btn"
+            onClick={() => setIsMuted(!isMuted)}
+          >
+            {isMuted ? "🔈" : "🔊"}
           </button>
 
           {activeDefs
@@ -519,7 +634,7 @@ function App() {
           }}
         >
           <div className="pause-box">
-            <h2>PAUSED</h2>
+            <h2>GAME PAUSED</h2>
             <p>Click anywhere or press Escape to resume</p>
           </div>
         </div>
@@ -572,7 +687,7 @@ function App() {
             className="format-help-box"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2>📖 File Format Guide</h2>
+            <h2>📚 File Format Guide</h2>
             <div className="format-content">
               <p className="format-intro">
                 Your text file should contain one word-definition pair per line, 
@@ -629,7 +744,27 @@ recursion: A function that calls itself`}
             </button>
             <div className="file-section">
               <p>Want to study a different word list?</p>
-              <input type="file" accept=".txt" onChange={handleFile} />
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+                <label htmlFor="fileInputGameOver" style={{
+                  padding: '12px 30px',
+                  fontSize: '1.1em',
+                  backgroundColor: '#555',
+                  color: 'white',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  border: 'none',
+                  transition: 'background-color 0.2s'
+                }}>
+                  📁 Choose File
+                </label>
+                <input
+                  type="file"
+                  id="fileInputGameOver"
+                  accept=".txt"
+                  onChange={handleFile}
+                  style={{ display: 'none' }}
+                />
+              </div>
             </div>
           </div>
         </div>

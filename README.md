@@ -1,70 +1,63 @@
-# Getting Started with Create React App
+Typing Study Game
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A fun word typing game to help you study and memorize vocabulary! 
 
-## Available Scripts
+Features
+- Multiple Game Modes:
+  - Classic: Complete all words with 3 lives
+  - Classic Hard Mode: Increasing difficulty with faster falling speeds
+  - Timed: Score as many points as possible in 3 minutes
+  
+- Custom Word Lists: Upload your own .txt files with custom vocabulary
+- Background Music: Randomized tracks for menu and gameplay
+- Cool Space Theme: Animated starfield background
 
-In the project directory, you can run:
+How to Play
+1. Choose a game mode
+2. Type the word that matches the falling definition
+3. Press Enter to submit your answer
+4. Don't let definitions reach the bottom!
 
-### `npm start`
+Controls
+- Type + Enter: Submit answer
+- Escape: Pause/Resume game
+- 🔊/🔈 Button: Mute/Unmute music
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Custom Word Lists
+* Make sure to upload and format your .txt files like this:
+```
+word: definition
+function: A block of code that performs a task
+variable: A named value that can change
+array: A list that stores multiple values
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Music Credits:
+All music provided by NoCopyrightSounds (NCS)
 
-### `npm test`
+Menu Music:
+- Song: Elektronomia - Sky High [NCS Release]
+    Music provided by NoCopyrightSounds
+    Free Download/Stream: http://ncs.io/skyhigh
+    Watch: http://youtu.be/TW9d8vYrVFQ
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Game Music:
+- Song: Warriyo - Mortals (feat. Laura Brehm) [NCS Release]
+    Music provided by NoCopyrightSounds
+    Free Download/Stream: http://ncs.io/mortals
+    Watch: http://youtu.be/yJg-Y5byMMw
+- Song: Cartoon, Jéja - On & On (feat. Daniel Levi) [NCS Release]
+    Music provided by NoCopyrightSounds
+    Free Download/Stream: http://ncs.io/onandon
+    Watch: http://youtu.be/K4DyBUG242c
+- Song: DEAF KEV - Invincible [NCS Release]
+    Music provided by NoCopyrightSounds
+    Free Download/Stream: http://ncs.io/invincible
+    Watch: http://youtu.be/J2X5mJ3HDYE
 
-### `npm run build`
+Sound Effects:
+- correct1.wav by StavSounds -- https://freesound.org/s/546083/ -- License: Creative Commons 0
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- Game_over.wav by deleted_user_877451 -- https://freesound.org/s/76376/ -- License: Attribution 3.0
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Shooting Star 4 by plasterbrain -- https://freesound.org/s/351810/ -- License: Creative Commons 0

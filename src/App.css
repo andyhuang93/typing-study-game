@@ -19,7 +19,7 @@ h1 {
 }
 
 /* ===== File Input & Start Button ===== */
-#fileInput, #startBtn  {
+#startBtn  {
   margin-top: 20px;
   font-size: 1.2em;
   display: block;
@@ -90,7 +90,7 @@ h1 {
 #score {
   position: fixed;
   top: 10px;
-  right: 40px;
+  right: 25px;
   font-size: 1.5em;
   text-shadow: 1px 1px 3px #000;
   z-index: 10;
@@ -190,6 +190,8 @@ h1 {
   font-size: 1em;
 }
 
+
+
 /* ===== Definition Box ===== */
 .definition-box {
   position: fixed;
@@ -208,7 +210,6 @@ h1 {
   z-index: 2;
   pointer-events: none;
 }
-
 
 
 /* ===== Starfield Background ===== */
@@ -264,7 +265,7 @@ h1 {
 
 #mainMenuBtn:hover {
   opacity: 1;
-  background-color: #666;   /* slightly lighter on hover */
+  background-color: #666;   
 }
 
 
@@ -500,7 +501,7 @@ h1 {
 }
 
 .format-rules li:before {
-  content: "✓";
+  content: "●";
   position: absolute;
   left: 0;
   color: #2ecc71;
@@ -530,4 +531,22 @@ h1 {
 .format-close-btn:hover {
   background-color: #27ae60;
   transform: translateY(-2px);
+}
+
+/* Music mute button */
+
+.mute-btn {
+  position: fixed;
+  top: -5px;
+  z-index: 1000;
+  left: 85px;
+  background: transparent;
+  border: none;
+  font-size: 50px;
+  cursor: pointer;
+  padding: 6px;
+}
+
+.mute-btn:hover {
+  transform: scale(1.1);
 }
