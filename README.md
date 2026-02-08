@@ -1,6 +1,7 @@
 Typing Study Game
 
 A fun word typing game to help you study and memorize vocabulary! 
+Definitions falling from the sky, type the matching word before it hits the bottom!
 
 Features
 - Multiple Game Modes:
@@ -10,18 +11,6 @@ Features
   
 - Custom Word Lists: Upload your own .txt files with custom vocabulary
 - Background Music: Randomized tracks for menu and gameplay
-- Cool Space Theme: Animated starfield background
-
-How to Play
-1. Choose a game mode
-2. Type the word that matches the falling definition
-3. Press Enter to submit your answer
-4. Don't let definitions reach the bottom!
-
-Controls
-- Type + Enter: Submit answer
-- Escape: Pause/Resume game
-- 🔊/🔈 Button: Mute/Unmute music
 
 Custom Word Lists
 * Make sure to upload and format your .txt files like this:
